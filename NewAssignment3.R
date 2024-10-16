@@ -1,53 +1,45 @@
+# early symptoms - fatigue , yellow fingers, anxiety, coughing ,
+#          shortness of breath,allergy,chronic disease,wheezing
+# advanced symptoms - chest pain, swallowing dificulty,
+library(rethinking)
+d <- read.csv("https://www.torkar.se/data-slc.csv")
+d$GENDER <- as.integer(ifelse(d$GENDER == "M", 2, 1))
+d$LUNG_CANCER <- as.integer(ifelse(d$LUNG_CANCER == "YES", 1, 0))
+d$AGE <- standardize(d$AGE)
+colnames(d)[colnames(d) %in% c("CHRONIC.DISEASE", "ALCOHOL.CONSUMING", "SHORTNESS.OF.BREATH", "SWALLOWING.DIFFICULTY", "CHEST.PAIN")] <- c("CHRONIC_DISEASE", "ALCOHOL_CONSUMING", "SHORTNESS_OF_BREATH", "SWALLOWING_DIFFICULTY", "CHEST_PAIN")
 
+m_early <- ulam(       # age and shortness of breath
+    alist( 
+    LUNG_CANCER ~ dbinom( 1 , p ) , 
+    logit(p) <- a + b_yellow[YELLOW_FINGERS] +
+                b_anxiety[ANXIETY] + b_chronic[CHRONIC_DISEASE] + 
+                b_fatigue[FATIGUE] + b_allergy[ALLERGY] + b_wheezing[WHEEZING] + b_coughing[COUGHING] , 
+    a ~ dnorm(0,1.5),           
+    b_yellow[YELLOW_FINGERS] ~ dnorm(0, 0.5),
+    b_anxiety[ANXIETY] ~ dnorm(0, 0.5),
+    b_chronic[CHRONIC_DISEASE] ~ dnorm(0, 0.5),
+    b_fatigue[FATIGUE] ~ dnorm(0, 0.5),
+    b_allergy[ALLERGY] ~ dnorm(0, 0.5),
+    b_wheezing[WHEEZING] ~ dnorm(0, 0.5),
+    b_coughing[COUGHING] ~ dnorm(0, 0.5)
+    ) ,
+    data=d ,chains = 4,cores = 4, log_lik = TRUE)
 
-# Install ggdag and dagitty packages if not already installed
-install.packages("ggdag")
-install.packages("dagitty")
+m_advanced <- ulam(                     # age and shortness of breath
+    alist( 
+    LUNG_CANCER ~ dbinom( 1 , p ) , 
+    logit(p) <- a + b_swallow[SWALLOWING_DIFFICULTY] +
+                b_pain[CHEST_PAIN] , 
+    a ~ dnorm(0,1.5),           
+    b_swallow[SWALLOWING_DIFFICULTY] ~ dnorm(0, 0.5),
+    b_pain[CHEST_PAIN] ~ dnorm(0, 0.5)
+    ) ,
+    data=d ,chains = 4,cores = 4, log_lik = TRUE)
+    
+print(compare(m_early,m_advanced))
+# plot(compare(m_earlysym,m_late))
 
-# Load the libraries
-library(ggdag)
-library(dagitty)
+plot(coeftab(m_earlysym,m_late), par=c("b_swallow[1]","b_swallow[2]",
+ "b_pain[1]","b_pain[2]"
+ ))
 
-# Create the DAG structure
-dag_data <- dagify(
-  lung_cancer ~ smoking + age + coughing + wheezing + yellow_fingers + chest_pain + swallowing_difficulty + fatigue + chronic_disease + shortness_of_breath + anxiety ,
-  coughing ~ smoking,
-  smoking ~ alchol,
-  alchol ~ peer_pressure,
-  wheezing ~ allergy,
-  shortness_of_breath ~ smoking,
-  shortness_of_breath ~ anxiety,
-  yellow_fingers ~ smoking,
-  chronic_disease ~ age,
-  fatigue ~ age,
-  smoking ~ peer_pressure,
-  labels = c(
-    "lung_cancer" = "Lung Cancer",
-    "smoking" = "Smoking",
-    "coughing" = "Coughing",
-    "wheezing" = "Wheezing",
-    "yellow_fingers" = "Yellow Fingers",
-    "chest_pain" = "Chest Pain",
-    "swallowing_difficulty" = "Swallowing Difficulty",
-    "fatigue" = "Fatigue",
-    "chronic_disease" = "Chronic Disease",
-    "peer_pressure" = "Peer Pressure",
-    "age" = "Age",
-    "shortness_of_breath" = "Shortness_of_breath",
-    "alchol"="Alchol",
-    "allergy" = "Allergy",
-    "anxiety" = "Anxiety"
-  )
-)
-tidy_dag <- tidy_dagitty(dag_data)
- # print(impliedConditionalIndependencies(dag_data))
- 
-# Create the DAG plot
-dag_plot <- ggdag(tidy_dag, text = FALSE, use_labels = "label") +
-  theme_dag()
-
-# Save the plot to a file to ensure it's being generated
-# ggsave("dag_plot.png", plot = dag_plot)
-
-# Print the plot explicitly if in a non-interactive environment
-plot(dag_plot)
