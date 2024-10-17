@@ -27,7 +27,7 @@ colnames(d)[colnames(d) %in% c("CHRONIC.DISEASE", "ALCOHOL.CONSUMING",
 # p <- sapply(1:2, function(k) inv_logit(prior$a + prior$b_gender[,k]))
 # dens(abs(p[,1]-p[,2]))
 #----------------------------------------------------------------------------
-m_All <- ulam(   # included all variables
+M_All <- ulam(   # included all variables
     alist( 
     LUNG_CANCER ~ dbinom(1, p),
     logit(p) <- a + b_gender[GENDER] + b_age*AGE + b_smoking[SMOKING] +
@@ -38,7 +38,7 @@ m_All <- ulam(   # included all variables
                 b_coughing[COUGHING] + b_breath[SHORTNESS_OF_BREATH] +
                 b_swallow[SWALLOWING_DIFFICULTY] +
                 b_pain[CHEST_PAIN],
-                a ~ dnorm( 0 , 1.4),
+                a ~ dnorm( 0 , 1.5),
                 b_gender[GENDER] ~ dnorm( 0, 0.5),
                 b_age ~ dnorm( 0 , 0.5),
                 b_smoking[SMOKING] ~ dnorm( 0, 0.5),
@@ -58,7 +58,7 @@ m_All <- ulam(   # included all variables
               data = d, chains = 4, cores = 4, log_lik = TRUE)
 
 print("finish running m_ll")
-print(precis(m_All, depth = 2))
+# print(precis(M_All, depth = 2))
 # plot(precis(m_All, depth = 2))
 
 
@@ -97,24 +97,25 @@ print(precis(m_All, depth = 2))
 
 #-----------------------------------------------------------------------------
 
-m_6 <- ulam(   # removed age,gender,intercept,shortness of breath, anxiety, chest pain
+M_dag <- ulam(   # removed age,gender,shortness of breath,
             alist( 
               LUNG_CANCER ~ dbinom(1, p),
               logit(p) <- a + b_smoking[SMOKING] +
-                b_yellow[YELLOW_FINGERS] + 
-                # b_anxiety[ANXIETY] +
+                b_yellow[YELLOW_FINGERS] +
+                b_anxiety[ANXIETY] +
                 b_pressure[PEER_PRESSURE] +
                 b_chronic[CHRONIC_DISEASE] +
-                b_allergy[ALLERGY] + b_fatigue[FATIGUE] +
+                b_allergy[ALLERGY] + 
+                b_fatigue[FATIGUE] +
                 b_wheezing[WHEEZING] +
                 b_alcohol[ALCOHOL_CONSUMING] +
                 b_coughing[COUGHING] +
-                b_swallow[SWALLOWING_DIFFICULTY],
-                # b_pain[CHEST_PAIN],
-              a ~ dnorm( 0 , 1.5),
+                b_swallow[SWALLOWING_DIFFICULTY] +
+                b_pain[CHEST_PAIN],
+              a ~ dnorm(0, 1.5),
               b_smoking[SMOKING] ~ dnorm( 0, 0.5),
               b_yellow[YELLOW_FINGERS] ~ dnorm(0, 0.5),
-              # b_anxiety[ANXIETY] ~ dnorm(0, 0.5),
+              b_anxiety[ANXIETY] ~ dnorm(0, 0.5),
               b_pressure[PEER_PRESSURE] ~ dnorm(0, 0.5),
               b_chronic[CHRONIC_DISEASE] ~ dnorm(0, 0.5),
               b_fatigue[FATIGUE] ~ dnorm(0, 0.5),
@@ -122,34 +123,36 @@ m_6 <- ulam(   # removed age,gender,intercept,shortness of breath, anxiety, ches
               b_wheezing[WHEEZING] ~ dnorm(0, 0.5),
               b_alcohol[ALCOHOL_CONSUMING] ~ dnorm(0, 0.5),
               b_coughing[COUGHING] ~ dnorm(0, 0.5),
-              b_swallow[SWALLOWING_DIFFICULTY] ~ dnorm(0, 0.5)
-              # b_pain[CHEST_PAIN] ~ dnorm(0, 0.5)
+              b_swallow[SWALLOWING_DIFFICULTY] ~ dnorm(0, 0.5),
+              b_pain[CHEST_PAIN] ~ dnorm(0, 0.5)
             ) ,
             data = d, chains = 4, cores = 4, log_lik = TRUE)
 print("finish running m_6")
-# print(PSIS(m_6, pointwise = TRUE))
-print(precis(m_6, depth = 2))
-# print(WAIC(m_6))
-# print(PSIS(m_6))
-# plot(precis(m_6, depth = 2))
-# print("hello")
+# # print(PSIS(m_6, pointwise = TRUE))
+# print(precis(m_6, depth = 2))
+# # print(WAIC(m_6))
+# # print(PSIS(m_6))
+# # plot(precis(m_6, depth = 2))
+# # print("hello")
 
 
 #-----------------------------------------------------------------------------
 
-# m_7 <- ulam(           # removed intercept,gender,shortness of breath
+# m_7 <- ulam(           # removed age,gender
 #             alist(
 #               LUNG_CANCER ~ dbinom(1, p),
-#               logit(p) <- b_age * AGE + b_smoking[SMOKING] +
+#               logit(p) <- a + b_smoking[SMOKING] +
 #                 b_yellow[YELLOW_FINGERS] +
 #                 b_anxiety[ANXIETY] +
 #                 b_pressure[PEER_PRESSURE] + b_chronic[CHRONIC_DISEASE] +
-#                 b_fatigue[FATIGUE] + b_wheezing[WHEEZING] + b_allergy[ALLERGY] +
+#                 b_fatigue[FATIGUE] + b_wheezing[WHEEZING] +
+#                 b_allergy[ALLERGY] +
+#                 # b_breath[SHORTNESS_OF_BREATH] +
 #                 b_alcohol[ALCOHOL_CONSUMING] +
 #                 b_coughing[COUGHING] +
-#                 b_swallow[SWALLOWING_DIFFICULTY] +
-#                 b_pain[CHEST_PAIN],
-#               b_age ~ dnorm(0, 0.5),
+#                 b_swallow[SWALLOWING_DIFFICULTY],
+#                 # b_pain[CHEST_PAIN],
+#               a ~ dnorm(0, 0.5),
 #               b_smoking[SMOKING] ~ dnorm(0, 0.5),
 #               b_yellow[YELLOW_FINGERS] ~ dnorm(0, 0.5),
 #               b_anxiety[ANXIETY] ~ dnorm(0, 0.5),
@@ -160,8 +163,9 @@ print(precis(m_6, depth = 2))
 #               b_wheezing[WHEEZING] ~ dnorm(0, 0.5),
 #               b_alcohol[ALCOHOL_CONSUMING] ~ dnorm(0, 0.5),
 #               b_coughing[COUGHING] ~ dnorm(0, 0.5),
+#               # b_breath[SHORTNESS_OF_BREATH] ~ dnorm(0, 0.5),
 #               b_swallow[SWALLOWING_DIFFICULTY] ~ dnorm(0, 0.5),
-#               b_pain[CHEST_PAIN] ~ dnorm(0, 0.5)
+#               # b_pain[CHEST_PAIN] ~ dnorm(0, 0.5)
 #             ) ,
 #             data = d, chains = 4, cores = 4, log_lik = TRUE)
 # print("fininsh running m_7")
@@ -169,21 +173,22 @@ print(precis(m_6, depth = 2))
 # plot(precis(m_7, depth = 2))
 
 print("compare result")
-print(compare(m_6, m_All, func = WAIC))
-# # plot(compare(m_6, m_All))
-traceplot(m_6)
+print(compare(M_All, M_dag, func = WAIC))
+# plot(compare(M_All, M_dag))
+# traceplot(m_6)
 # trankplot(m_6)
 # 
-# plot(coeftab(m_All, m_6), par = c("a","b_age",
-#                                      "b_coughing[1]", "b_coughing[2]",
-#                                      "b_smoking[1]", "b_smoking[2]",
-#                                      "b_yellow[1]", "b_yellow[2]",
-#                                      "b_anxiety[1]", "b_anxiety[2]",
-#                                      "b_pressure[1]", "b_pressure[2]",
-#                                      "b_chronic[1]", "b_chronic[2]",
-#                                      "b_fatigue[1]", "b_fatigue[2]",
-#                                      "b_allergy[1]", "b_allergy[2]",
-#                                      "b_wheezing[1]", "b_wheezing[2]",
-#                                      "b_alcohol[1]", "b_alcohol[2]",
-#                                      "b_swallow[1]", "b_swallow[2]",
-#                                      "b_pain[1]", "b_pain[2]"))
+plot(coeftab(M_All, M_dag), par = c("a", "b_age", "b_gender[1]", "b_gender[2]",
+                                  "b_coughing[1]", "b_coughing[2]",
+                                  "b_smoking[1]", "b_smoking[2]",
+                                  "b_yellow[1]", "b_yellow[2]",
+                                  "b_anxiety[1]", "b_anxiety[2]",
+                                  "b_pressure[1]", "b_pressure[2]",
+                                  "b_chronic[1]", "b_chronic[2]",
+                                  "b_breath[1]", "b_breath[2]",
+                                  "b_fatigue[1]", "b_fatigue[2]",
+                                  "b_allergy[1]", "b_allergy[2]",
+                                  "b_wheezing[1]", "b_wheezing[2]",
+                                  "b_alcohol[1]", "b_alcohol[2]",
+                                  "b_swallow[1]", "b_swallow[2]",
+                                  "b_pain[1]", "b_pain[2]"))
